@@ -16,6 +16,7 @@ GUARD &8f
 ;----------------------------------------------------------------------------------------------------------
 ; Include common code headers here - these can declare ZP vars from the pool using SKIP...
 
+INCLUDE "lib/vgcplayer_config.h.asm"
 INCLUDE "lib/vgcplayer.h.asm"
 
 
