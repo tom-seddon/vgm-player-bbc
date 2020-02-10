@@ -942,6 +942,5 @@ ENDIF ; ENABLE_HUFFMAN
 PRINT "    decoder code size is", (decoder_end-decoder_start), "bytes"
 PRINT " vgm player code size is", (vgm_end-vgm_start), "bytes"
 PRINT "total vgm player size is", (decoder_end-decoder_start) + (vgm_end-vgm_start), "bytes"
-PRINT "      vgm buffer size is", (vgm_buffer_end-vgm_buffer_start), "bytes"
 
 

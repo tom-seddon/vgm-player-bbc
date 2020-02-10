@@ -116,3 +116,4 @@ PRINT ~vgm_data
 
 SAVE "Main", start, end, main
 
+PRINT "      vgm buffer size is", (vgm_buffer_end-vgm_buffer_start), "bytes"
