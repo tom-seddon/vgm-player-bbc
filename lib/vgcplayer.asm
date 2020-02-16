@@ -183,6 +183,12 @@ VGM_STREAMS = 8
     ; 8 zp_huff_bitbuffer ; 1 byte, referenced by inner loop
     ; 9 huff_bitsleft     ; 1 byte, referenced by inner loop
 
+IF ENABLE_STREAMS
+; since this is optional, best have it separate.
+.vgm_stream_banks
+    skip VGM_STREAMS
+ENDIF
+
 .vgm_buffers  equb 0    ; the HI byte of the address where the buffers are stored
 .vgm_finished equb 0    ; a flag to indicate player has reached the end of the vgm stream
 .vgm_flags  equb 0      ; flags for current vgm file. bit7 set stream is huffman coded. bit 6 set if stream is 16-bit LZ4 offsets
@@ -249,6 +255,7 @@ VGM_STREAMS = 8
     ; VGC streams have a different magic number to LZ4
     ; [56 47 43 XX]
     ; where XX:
+    ; bit 5 - hacky multi-stream mode
     ; bit 6 - LZ 8 bit (0) or 16 bit (1) [unsupported atm]
     ; bit 7 - Huffman (1) or no huffman (0)
 
@@ -315,11 +322,17 @@ ENDIF
 .skip_hufftable
 ENDIF ; ENABLE_HUFFMAN
 
-
     ; read the block headers (size)
     ldx #0
     ; clear vgm finished flag
     stx vgm_finished
+    
+if ENABLE_STREAMS
+    lda vgm_flags
+    and #$20			; streams mode?
+    bne streams
+endif
+
 .block_loop
  
     ; get start address of encoded data for vgm_stream[x] (block ptr+4)
@@ -342,6 +355,11 @@ ENDIF ; ENABLE_HUFFMAN
     sta vgm_streams + VGM_STREAMS*8, x  ; huff bitbuffer
     sta vgm_streams + VGM_STREAMS*9, x  ; huff bitsleft
 
+IF ENABLE_STREAMS
+    lda $f4
+    sta vgm_stream_banks,x
+ENDIF
+
     ; setup RLE tables
     lda #1
     sta vgm_register_counts, X
@@ -354,6 +372,7 @@ ENDIF ; ENABLE_HUFFMAN
     cpx #8
     bne block_loop
 
+.streams_initialised
 IF ENABLE_HUFFMAN
 IF HUFFMAN_INLINE
     ; setup byte fetch routines to lz_fetch_byte or huff_fetch_byte
@@ -385,6 +404,50 @@ ENDIF ; HUFFMAN_INLINE
 ENDIF ;ENABLE_HUFFMAN    
 
     rts
+
+IF ENABLE_STREAMS
+.streams
+; 1 byte bank, 1 word address, for each stream.
+    ldy #0
+.streams_loop
+; stream bank
+    lda (zp_block_data),y
+    sta vgm_stream_banks,x
+    iny
+
+ ; zp_stream_src lo
+    lda (zp_block_data),y
+    clc
+    adc #4			; skip block header
+    sta vgm_streams+VGM_STREAMS*0,x
+    iny
+    
+ ; zp_stream_src hi    
+    lda (zp_block_data),y
+    adc #0
+    sta vgm_streams+VGM_STREAMS*1,x
+    iny
+    
+    ; init the rest
+    lda #0
+    sta vgm_streams + VGM_STREAMS*2, x  ; literal cnt 
+    sta vgm_streams + VGM_STREAMS*3, x  ; literal cnt 
+    sta vgm_streams + VGM_STREAMS*4, x  ; match cnt 
+    sta vgm_streams + VGM_STREAMS*5, x  ; match cnt 
+    sta vgm_streams + VGM_STREAMS*6, x  ; window src ptr 
+    sta vgm_streams + VGM_STREAMS*7, x  ; window dst ptr 
+    sta vgm_streams + VGM_STREAMS*8, x  ; huff bitbuffer
+    sta vgm_streams + VGM_STREAMS*9, x  ; huff bitsleft
+
+    ; setup RLE tables
+    lda #1
+    sta vgm_register_counts, X
+
+    inx
+    cpx #8
+    bne streams_loop
+    beq streams_initialised
+ENDIF
 }
 
 ;----------------------------------------------------------------------
@@ -433,6 +496,11 @@ IF ENABLE_HUFFMAN
     sta zp_huff_bitbuffer
     lda vgm_streams + VGM_STREAMS*9, x
     sta zp_huff_bitsleft
+ENDIF
+
+IF ENABLE_STREAMS
+    lda vgm_stream_banks, x
+    sta $f4:sta $fe30
 ENDIF
 
     ; then fetch a decompressed byte
