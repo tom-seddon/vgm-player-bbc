@@ -16,3 +16,6 @@ ENABLE_HUFFMAN = TRUE
 
 ; Enable this to capture the SN chip register settings (for fx etc.)
 ENABLE_VGM_FX = TRUE
+
+; Enable this to support the output from the vgcfit.py script
+ENABLE_VGCFIT = FALSE

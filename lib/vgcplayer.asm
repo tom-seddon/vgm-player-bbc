@@ -183,7 +183,7 @@ VGM_STREAMS = 8
     ; 8 zp_huff_bitbuffer ; 1 byte, referenced by inner loop
     ; 9 huff_bitsleft     ; 1 byte, referenced by inner loop
 
-IF ENABLE_STREAMS
+IF ENABLE_VGCFIT
 ; since this is optional, best have it separate.
 .vgm_stream_banks
     skip VGM_STREAMS
@@ -255,7 +255,7 @@ ENDIF
     ; VGC streams have a different magic number to LZ4
     ; [56 47 43 XX]
     ; where XX:
-    ; bit 5 - hacky multi-stream mode
+    ; bit 5 - vgcfit output
     ; bit 6 - LZ 8 bit (0) or 16 bit (1) [unsupported atm]
     ; bit 7 - Huffman (1) or no huffman (0)
 
@@ -327,7 +327,7 @@ ENDIF ; ENABLE_HUFFMAN
     ; clear vgm finished flag
     stx vgm_finished
     
-if ENABLE_STREAMS
+if ENABLE_VGCFIT
     lda vgm_flags
     and #$20			; streams mode?
     bne streams
@@ -355,7 +355,7 @@ endif
     sta vgm_streams + VGM_STREAMS*8, x  ; huff bitbuffer
     sta vgm_streams + VGM_STREAMS*9, x  ; huff bitsleft
 
-IF ENABLE_STREAMS
+IF ENABLE_VGCFIT
     lda $f4
     sta vgm_stream_banks,x
 ENDIF
@@ -405,7 +405,7 @@ ENDIF ;ENABLE_HUFFMAN
 
     rts
 
-IF ENABLE_STREAMS
+IF ENABLE_VGCFIT
 .streams
 ; 1 byte bank, 1 word address, for each stream.
     ldy #0
@@ -498,7 +498,7 @@ IF ENABLE_HUFFMAN
     sta zp_huff_bitsleft
 ENDIF
 
-IF ENABLE_STREAMS
+IF ENABLE_VGCFIT
     lda vgm_stream_banks, x
     sta $f4:sta $fe30
 ENDIF
